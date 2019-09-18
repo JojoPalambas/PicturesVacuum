@@ -21,4 +21,12 @@ public abstract class Utils
             return fileName.Substring(dotIndex + 1);
         return "";
     }
+
+    public static bool Contains(string[] array, string s)
+    {
+        foreach (string element in array)
+            if (s == element)
+                return true;
+        return false;
+    }
 }

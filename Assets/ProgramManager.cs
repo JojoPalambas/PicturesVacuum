@@ -11,43 +11,6 @@ using System.IO;
 // TODO Error log
 // TODO Animations
 
-public struct ScanAndCopyJob : IJob
-{
-    public NativeArray<int> jobCommunicationArray;
-    public NativeArray<char> jobSrcPathAttribute;
-    public NativeArray<char> jobDstPathAttribute;
-    public NativeArray<char> jobExtensionsAttribute;
-
-    public void Execute()
-    {
-        string srcPath = Utils.CharNativeArrayToString(jobSrcPathAttribute);
-        string dstPath = Utils.CharNativeArrayToString(jobDstPathAttribute);
-        string[] extensions = Utils.CharNativeArrayToString(jobExtensionsAttribute).Split(' ');
-
-        string[] fileNames = new string[0];
-        if (srcPath == "")
-        {
-            DriveInfo[] drives = DriveInfo.GetDrives();
-
-            for (int i = 0; i < drives.Length; i++)
-            {
-                fileNames = Directory.GetFiles(drives[i].Name, "*.png", SearchOption.AllDirectories);
-                Debug.Log("Drive " + drives[i].Name + " done");
-            }
-        }
-        else
-        {
-            fileNames = Directory.GetFiles(srcPath, "*.png", SearchOption.AllDirectories);
-            foreach (string fileName in fileNames)
-            {
-                Debug.Log(fileName);
-            }
-        }
-
-        jobCommunicationArray[0] = 0;
-    }
-}
-
 public class ProgramManager : MonoBehaviour
 {
     // Inputs and outputs
@@ -140,18 +103,16 @@ public class ProgramManager : MonoBehaviour
     public void StopJob()
     {
         // Handling the job
-        if (!jobHandle.IsCompleted)
-            jobHandle.Complete();
+        jobHandle.Complete();
 
         // Disposing the communication array
         if (jobCommunicationArray.Length > 0)
+        {
             jobCommunicationArray.Dispose();
-        if (jobSrcPathAttribute.Length > 0)
             jobSrcPathAttribute.Dispose();
-        if (jobDstPathAttribute.Length > 0)
             jobDstPathAttribute.Dispose();
-        if (jobExtensionsAttribute.Length > 0)
             jobExtensionsAttribute.Dispose();
+        }
     }
 
     public void OnDestroy()
