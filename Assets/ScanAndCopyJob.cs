@@ -13,13 +13,20 @@ public abstract class ScanAndCopyProgressionManager
 {
     public static Stopwatch stopWatch;
 
-    public static int imagesScanned = 0;
-
+    // Publishes the progression of the scanning phase
     public static void PublishScanProgression(int progression)
     {
         Debug.Log(progression);
     }
 
+    // Publishes the progression of the size estimation phase
+    public static void PublishSizeProgression(int progression, int progressionTotal)
+    {
+        Debug.Log(progression);
+        Debug.Log(progressionTotal);
+    }
+
+    // Publishes the progression of the copy phase
     public static void PublishCopyProgression(int progression, int progressionTotal)
     {
         Debug.Log(progression);
@@ -36,17 +43,20 @@ public struct ScanAndCopyJob : IJob
 
     public void Execute()
     {
+        // Manages the progression measure
         ScanAndCopyProgressionManager.stopWatch = new Stopwatch();
         ScanAndCopyProgressionManager.stopWatch.Start();
 
+        // Build a refined form of the inputs
         string srcPath = Utils.CharNativeArrayToString(jobSrcPathAttribute);
         string dstPath = Utils.CharNativeArrayToString(jobDstPathAttribute);
         string[] extensions = Utils.CharNativeArrayToString(jobExtensionsAttribute).Split(' ');
         for (int i = 0; i < extensions.Length; i++)
             extensions[i] = '.' + extensions[i];
 
+        // Builds the list of all the files to copy
+
         List<string> fileNames = null;
-        Debug.Log(srcPath);
         if (srcPath == "")
         {
             DriveInfo[] drives = DriveInfo.GetDrives();
@@ -64,8 +74,70 @@ public struct ScanAndCopyJob : IJob
             fileNames = GetAllFiles(srcPathInArray, extensions);
         }
 
-        ScanAndCopyProgressionManager.imagesScanned = fileNames.Count;
+        ScanAndCopyProgressionManager.PublishScanProgression(fileNames.Count);
         Debug.Log("Count: " + fileNames.Count.ToString());
+
+        ScanAndCopyProgressionManager.stopWatch.Restart();
+        
+
+        // Checks if there is enough free space on the drive
+
+        DirectoryInfo directoryInfo = new DirectoryInfo(dstPath);
+        DriveInfo driveInfo = new DriveInfo(directoryInfo.Root.ToString());
+        long availableDstSpace = driveInfo.AvailableFreeSpace * 100 / 115;
+        Debug.Log("AvailableFreeSpace: " + driveInfo.AvailableFreeSpace);
+        Debug.Log("AvailableFreeSpace with security: " + availableDstSpace);
+
+        long neededSpace = 0;
+
+        for (int i = 0; i < fileNames.Count; i++)
+        {
+            if (ScanAndCopyProgressionManager.stopWatch.ElapsedMilliseconds > 1000)
+            {
+                ScanAndCopyProgressionManager.PublishSizeProgression(i, fileNames.Count);
+                ScanAndCopyProgressionManager.stopWatch.Restart();
+            }
+
+            FileInfo currentFileInfo = new FileInfo(fileNames[i]);
+            neededSpace += currentFileInfo.Length;
+        }
+
+        ScanAndCopyProgressionManager.PublishSizeProgression(fileNames.Count, fileNames.Count);
+
+        Debug.Log("NeededSpace: " + neededSpace);
+        neededSpace = neededSpace * 115 / 100;
+        Debug.Log("NeededSpace with security: " + neededSpace);
+
+        if (neededSpace > availableDstSpace)
+        {
+            Debug.Log("Copy impossible ; not enough space: need " + neededSpace.ToString() + ", have " + availableDstSpace);
+            return;
+        }
+
+        ScanAndCopyProgressionManager.stopWatch.Restart();
+
+        // Copies all the files
+
+        for (int i = 0; i < fileNames.Count; i++)
+        {
+            if (ScanAndCopyProgressionManager.stopWatch.ElapsedMilliseconds > 1000)
+            {
+                ScanAndCopyProgressionManager.PublishCopyProgression(i, fileNames.Count);
+                ScanAndCopyProgressionManager.stopWatch.Restart();
+            }
+
+            try
+            {
+                FileInfo currentFileInfo = new FileInfo(fileNames[i]);
+                Debug.Log(fileNames[i]);
+                Debug.Log(dstPath + "\\" + currentFileInfo.Name);
+                File.Copy(fileNames[i], dstPath + "\\" + currentFileInfo.Name);
+            }
+            catch
+            {
+                Debug.Log("Could not copy " + fileNames[i]);
+            }
+        }
     }
 
     private List<string> GetAllFiles(string[] srcs, string[] extensions)

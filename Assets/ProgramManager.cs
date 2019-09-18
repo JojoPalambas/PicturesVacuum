@@ -11,6 +11,7 @@ using System.IO;
 // TODO Error log
 // TODO Animations
 // TODO Stop during job execution
+// TODO Add try/catch everywhere
 
 public class ProgramManager : MonoBehaviour
 {
