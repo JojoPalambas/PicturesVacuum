@@ -10,6 +10,7 @@ using System.IO;
 
 // TODO Error log
 // TODO Animations
+// TODO Stop during job execution
 
 public class ProgramManager : MonoBehaviour
 {
@@ -64,6 +65,25 @@ public class ProgramManager : MonoBehaviour
 
     public void ScanAndCopy()
     {
+        // Checks that the source path is empty or leads to an actual directory
+        if (srcInput.text != "" && !Directory.Exists(srcInput.text))
+        {
+            Debug.Log("Source does not exist!");
+            return;
+        }
+        // Checks that the destination is an existing empty directory
+        if (dstInput.text == "" || !Directory.Exists(dstInput.text) || Directory.GetFiles(dstInput.text).Length > 0 || Directory.GetDirectories(dstInput.text).Length > 0)
+        {
+            Debug.Log("Destination is invalid!");
+            return;
+        }
+        // Checks that the extensions list is not empty
+        if (extensionsInput.text.Length == 0)
+        {
+            Debug.Log("Extensions is empty!");
+            return;
+        }
+
         // Creating the communication array
         jobCommunicationArray = new NativeArray<int>(7, Allocator.Persistent);
         jobCommunicationArray[0] = 1;
