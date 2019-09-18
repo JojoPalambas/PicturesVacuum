@@ -6,24 +6,45 @@ using Crosstales.FB;
 using Unity.Collections;
 using Unity.Jobs;
 using System.Threading;
+using System.IO;
+
+// TODO Error log
+// TODO Animations
 
 public struct ScanAndCopyJob : IJob
 {
     public NativeArray<int> jobCommunicationArray;
     public NativeArray<char> jobSrcPathAttribute;
-    //public NativeArray<char> jobDstPathAttribute;
-    //public NativeArray<char> jobExtentionsAttribute;
+    public NativeArray<char> jobDstPathAttribute;
+    public NativeArray<char> jobExtensionsAttribute;
 
     public void Execute()
     {
-        foreach (int i in jobCommunicationArray)
+        string srcPath = Utils.CharNativeArrayToString(jobSrcPathAttribute);
+        string dstPath = Utils.CharNativeArrayToString(jobDstPathAttribute);
+        string[] extensions = Utils.CharNativeArrayToString(jobExtensionsAttribute).Split(' ');
+
+        string[] fileNames = new string[0];
+        if (srcPath == "")
         {
-            Debug.Log(i);
+            DriveInfo[] drives = DriveInfo.GetDrives();
+
+            for (int i = 0; i < drives.Length; i++)
+            {
+                fileNames = Directory.GetFiles(drives[i].Name, "*.png", SearchOption.AllDirectories);
+                Debug.Log("Drive " + drives[i].Name + " done");
+            }
         }
-        foreach (char c in jobSrcPathAttribute)
+        else
         {
-            Debug.Log(c);
+            fileNames = Directory.GetFiles(srcPath, "*.png", SearchOption.AllDirectories);
+            foreach (string fileName in fileNames)
+            {
+                Debug.Log(fileName);
+            }
         }
+
+        jobCommunicationArray[0] = 0;
     }
 }
 
@@ -45,6 +66,10 @@ public class ProgramManager : MonoBehaviour
     // [4] Images copied
     // [5] Size to copy
     // [6] Available size
+    NativeArray<int> jobCommunicationArray;
+    NativeArray<char> jobSrcPathAttribute;
+    NativeArray<char> jobDstPathAttribute;
+    NativeArray<char> jobExtensionsAttribute;
     private JobHandle jobHandle;
 
     // Start is called before the first frame update
@@ -55,6 +80,11 @@ public class ProgramManager : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        if (jobHandle.IsCompleted)
+        {
+            Debug.Log("Stop");
+            StopJob();
+        }
     }
 
     public void OpenScrFolder()
@@ -72,7 +102,7 @@ public class ProgramManager : MonoBehaviour
     public void ScanAndCopy()
     {
         // Creating the communication array
-        NativeArray<int> jobCommunicationArray = new NativeArray<int>(7, Allocator.Persistent);
+        jobCommunicationArray = new NativeArray<int>(7, Allocator.Persistent);
         jobCommunicationArray[0] = 1;
         jobCommunicationArray[1] = 0;
         jobCommunicationArray[2] = 0;
@@ -82,23 +112,25 @@ public class ProgramManager : MonoBehaviour
         jobCommunicationArray[6] = 0;
 
         // Creating the attributes arrays
-        NativeArray<char> jobSrcPathAttribute = new NativeArray<char>(srcInput.text.Length, Allocator.Persistent);
+        jobSrcPathAttribute = new NativeArray<char>(srcInput.text.Length, Allocator.Persistent);
         for (int i = 0; i < srcInput.text.Length; i++)
             jobSrcPathAttribute[i] = srcInput.text[i];
+        jobDstPathAttribute = new NativeArray<char>(dstInput.text.Length, Allocator.Persistent);
+        for (int i = 0; i < dstInput.text.Length; i++)
+            jobDstPathAttribute[i] = dstInput.text[i];
+        jobExtensionsAttribute = new NativeArray<char>(extensionsInput.text.Length, Allocator.Persistent);
+        for (int i = 0; i < extensionsInput.text.Length; i++)
+            jobExtensionsAttribute[i] = extensionsInput.text[i];
 
         // Creating the job
         ScanAndCopyJob jobData = new ScanAndCopyJob();
         jobData.jobSrcPathAttribute = jobSrcPathAttribute;
+        jobData.jobDstPathAttribute = jobDstPathAttribute;
+        jobData.jobExtensionsAttribute = jobExtensionsAttribute;
         jobData.jobCommunicationArray = jobCommunicationArray;
 
         // Scheduling the job
         jobHandle = jobData.Schedule();
-
-        // Handling the job
-        jobHandle.Complete();
-
-        // Disposing the communication array
-        jobCommunicationArray.Dispose();
     }
 
     private void SetJobsValues(ScanAndCopyJob job, NativeArray<int> jobCommunicationArray)
@@ -107,9 +139,23 @@ public class ProgramManager : MonoBehaviour
 
     public void StopJob()
     {
+        // Handling the job
+        if (!jobHandle.IsCompleted)
+            jobHandle.Complete();
+
+        // Disposing the communication array
+        if (jobCommunicationArray.Length > 0)
+            jobCommunicationArray.Dispose();
+        if (jobSrcPathAttribute.Length > 0)
+            jobSrcPathAttribute.Dispose();
+        if (jobDstPathAttribute.Length > 0)
+            jobDstPathAttribute.Dispose();
+        if (jobExtensionsAttribute.Length > 0)
+            jobExtensionsAttribute.Dispose();
     }
 
     public void OnDestroy()
     {
+        StopJob();
     }
 }
