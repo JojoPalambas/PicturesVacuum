@@ -20,9 +20,10 @@ public abstract class ScanAndCopyProgressionManager
         Debug.Log(progression);
     }
 
-    public static void PublishCopyProgression(int progression)
+    public static void PublishCopyProgression(int progression, int progressionTotal)
     {
         Debug.Log(progression);
+        Debug.Log(progressionTotal);
     }
 }
 
