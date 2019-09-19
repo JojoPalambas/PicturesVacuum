@@ -129,9 +129,16 @@ public struct ScanAndCopyJob : IJob
             try
             {
                 FileInfo currentFileInfo = new FileInfo(fileNames[i]);
-                Debug.Log(fileNames[i]);
-                Debug.Log(dstPath + "\\" + currentFileInfo.Name);
-                File.Copy(fileNames[i], dstPath + "\\" + currentFileInfo.Name);
+
+                string[] splittedFilePath = fileNames[i].Split('\\');
+                string newDirectoryName = dstPath + '\\';
+                for (int j = 1; j < splittedFilePath.Length - 1; j++)
+                    newDirectoryName += '_' + splittedFilePath[j];
+
+                if (!Directory.Exists(newDirectoryName))
+                    Directory.CreateDirectory(newDirectoryName);
+
+                File.Copy(fileNames[i], newDirectoryName + "\\" + currentFileInfo.Name);
             }
             catch
             {
