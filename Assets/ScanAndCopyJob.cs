@@ -14,35 +14,40 @@ public abstract class ScanAndCopyProgressionManager
     public static Stopwatch stopWatch;
 
     // Publishes the progression of the scanning phase
-    public static void PublishScanProgression(int progression)
+    public static void PublishScanProgression(int scanned)
     {
-        Debug.Log(progression);
+        ProgressionDisplayManager.instance.SetScanProgression(scanned);
     }
 
     // Publishes the progression of the size estimation phase
-    public static void PublishSizeProgression(int progression, int progressionTotal)
+    public static void PublishMeasureProgression(int measured)
     {
-        Debug.Log(progression);
-        Debug.Log(progressionTotal);
+        ProgressionDisplayManager.instance.SetMeasureProgression(measured);
     }
 
     // Publishes the progression of the copy phase
-    public static void PublishCopyProgression(int progression, int progressionTotal)
+    public static void PublishCopyProgression(int copied, int failed)
     {
-        Debug.Log(progression);
-        Debug.Log(progressionTotal);
+        ProgressionDisplayManager.instance.SetCopyProgression(copied, failed);
+    }
+
+    // Checks whether the program is asked to stop or not
+    public static bool ShouldStop()
+    {
+        return ProgressionDisplayManager.instance.ShouldStop();
     }
 }
 
 public struct ScanAndCopyJob : IJob
 {
-    public NativeArray<int> jobCommunicationArray;
     public NativeArray<char> jobSrcPathAttribute;
     public NativeArray<char> jobDstPathAttribute;
     public NativeArray<char> jobExtensionsAttribute;
 
     public void Execute()
     {
+        ProgressionDisplayManager.instance.Init();
+
         // Manages the progression measure
         ScanAndCopyProgressionManager.stopWatch = new Stopwatch();
         ScanAndCopyProgressionManager.stopWatch.Start();
@@ -94,7 +99,7 @@ public struct ScanAndCopyJob : IJob
         {
             if (ScanAndCopyProgressionManager.stopWatch.ElapsedMilliseconds > 1000)
             {
-                ScanAndCopyProgressionManager.PublishSizeProgression(i, fileNames.Count);
+                ScanAndCopyProgressionManager.PublishMeasureProgression(i);
                 ScanAndCopyProgressionManager.stopWatch.Restart();
             }
 
@@ -102,7 +107,7 @@ public struct ScanAndCopyJob : IJob
             neededSpace += currentFileInfo.Length;
         }
 
-        ScanAndCopyProgressionManager.PublishSizeProgression(fileNames.Count, fileNames.Count);
+        ScanAndCopyProgressionManager.PublishMeasureProgression(fileNames.Count);
 
         Debug.Log("NeededSpace: " + neededSpace);
         neededSpace = neededSpace * 115 / 100;
@@ -117,12 +122,15 @@ public struct ScanAndCopyJob : IJob
         ScanAndCopyProgressionManager.stopWatch.Restart();
 
         // Copies all the files
-
+        int failed = 0;
         for (int i = 0; i < fileNames.Count; i++)
         {
             if (ScanAndCopyProgressionManager.stopWatch.ElapsedMilliseconds > 1000)
             {
-                ScanAndCopyProgressionManager.PublishCopyProgression(i, fileNames.Count);
+                if (ScanAndCopyProgressionManager.ShouldStop())
+                    return;
+
+                ScanAndCopyProgressionManager.PublishCopyProgression(i - failed, failed);
                 ScanAndCopyProgressionManager.stopWatch.Restart();
             }
 
@@ -142,6 +150,7 @@ public struct ScanAndCopyJob : IJob
             }
             catch
             {
+                failed++;
                 Debug.Log("Could not copy " + fileNames[i]);
             }
         }
@@ -163,6 +172,9 @@ public struct ScanAndCopyJob : IJob
     {
         if (ScanAndCopyProgressionManager.stopWatch.ElapsedMilliseconds > 1000)
         {
+            if (ScanAndCopyProgressionManager.ShouldStop())
+                return;
+
             ScanAndCopyProgressionManager.PublishScanProgression(accu.Count);
             ScanAndCopyProgressionManager.stopWatch.Restart();
         }

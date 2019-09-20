@@ -20,18 +20,11 @@ public class ProgramManager : MonoBehaviour
     public InputField srcInput;
     public InputField dstInput;
     public InputField extensionsInput;
+    public Button scanButton;
+    public Button stopButton;
 
     // Job management
 
-    private bool hasJobStarted = false;
-    // [0] 1 -> continue the job ; 0 -> stop the job
-    // [1] Error code
-    // [2] Files scanned
-    // [3] Images found
-    // [4] Images copied
-    // [5] Size to copy
-    // [6] Available size
-    NativeArray<int> jobCommunicationArray;
     NativeArray<char> jobSrcPathAttribute;
     NativeArray<char> jobDstPathAttribute;
     NativeArray<char> jobExtensionsAttribute;
@@ -47,8 +40,14 @@ public class ProgramManager : MonoBehaviour
     {
         if (jobHandle.IsCompleted)
         {
-            Debug.Log("Stop");
-            StopJob();
+            scanButton.interactable = true;
+            stopButton.interactable = false;
+            EndJob();
+        }
+        else
+        {
+            scanButton.interactable = false;
+            stopButton.interactable = true;
         }
     }
 
@@ -72,8 +71,8 @@ public class ProgramManager : MonoBehaviour
             Debug.Log("Source does not exist!");
             return;
         }
-        // Checks that the destination is an existing empty directory
-        if (dstInput.text == "" || !Directory.Exists(dstInput.text) || Directory.GetFiles(dstInput.text).Length > 0 || Directory.GetDirectories(dstInput.text).Length > 0)
+        // Checks that the destination is an existing directory
+        if (dstInput.text == "" || !Directory.Exists(dstInput.text))
         {
             Debug.Log("Destination is invalid!");
             return;
@@ -86,14 +85,6 @@ public class ProgramManager : MonoBehaviour
         }
 
         // Creating the communication array
-        jobCommunicationArray = new NativeArray<int>(7, Allocator.Persistent);
-        jobCommunicationArray[0] = 1;
-        jobCommunicationArray[1] = 0;
-        jobCommunicationArray[2] = 0;
-        jobCommunicationArray[3] = 0;
-        jobCommunicationArray[4] = 0;
-        jobCommunicationArray[5] = 0;
-        jobCommunicationArray[6] = 0;
 
         // Creating the attributes arrays
         jobSrcPathAttribute = new NativeArray<char>(srcInput.text.Length, Allocator.Persistent);
@@ -111,25 +102,19 @@ public class ProgramManager : MonoBehaviour
         jobData.jobSrcPathAttribute = jobSrcPathAttribute;
         jobData.jobDstPathAttribute = jobDstPathAttribute;
         jobData.jobExtensionsAttribute = jobExtensionsAttribute;
-        jobData.jobCommunicationArray = jobCommunicationArray;
 
         // Scheduling the job
         jobHandle = jobData.Schedule();
     }
 
-    private void SetJobsValues(ScanAndCopyJob job, NativeArray<int> jobCommunicationArray)
-    {
-    }
-
-    public void StopJob()
+    public void EndJob()
     {
         // Handling the job
         jobHandle.Complete();
 
         // Disposing the communication array
-        if (jobCommunicationArray.Length > 0)
+        if (jobSrcPathAttribute.Length > 0)
         {
-            jobCommunicationArray.Dispose();
             jobSrcPathAttribute.Dispose();
             jobDstPathAttribute.Dispose();
             jobExtensionsAttribute.Dispose();
@@ -138,6 +123,6 @@ public class ProgramManager : MonoBehaviour
 
     public void OnDestroy()
     {
-        StopJob();
+        EndJob();
     }
 }
