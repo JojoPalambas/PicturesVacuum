@@ -16,6 +16,7 @@ public class ProgressionDisplayManager : MonoBehaviour
     public TextMeshProUGUI measuredDisplayer;
     public TextMeshProUGUI copiedDisplayer;
     public TextMeshProUGUI failedDiplayer;
+    public TextMeshProUGUI errorLog;
 
     private float nextShaderUpdate;
 
@@ -53,6 +54,7 @@ public class ProgressionDisplayManager : MonoBehaviour
         jobInfo["measuredFiles"] = 0;
         jobInfo["copiedFiles"] = 0;
         jobInfo["failedFiles"] = 0;
+        jobInfo["errorLog"] = 0;
 
         nextShaderUpdate = 0;
     }
@@ -71,6 +73,37 @@ public class ProgressionDisplayManager : MonoBehaviour
         measuredDisplayer.text = "Measured files: " + jobInfo["measuredFiles"].ToString();
         copiedDisplayer.text = "Copied files: " + jobInfo["copiedFiles"].ToString();
         failedDiplayer.text = "Failed files: " + jobInfo["failedFiles"].ToString();
+
+        switch (jobInfo["errorLog"])
+        {
+            case 0:
+                errorLog.text = "";
+                break;
+            case 1:
+                errorLog.text = "Error: Invalid source";
+                break;
+            case 2:
+                errorLog.text = "Error: Invalid destination";
+                break;
+            case 3:
+                errorLog.text = "Error: Invalid extensions";
+                break;
+            case 4:
+                errorLog.text = "Error: Not enough space on destination disk";
+                break;
+            case 5:
+                errorLog.text = "Error: Manual stop";
+                break;
+            default:
+                errorLog.text = "Error: Unknown error";
+                break;
+        }
+    }
+
+    public void SetErrorCode(int errorCode)
+    {
+        jobInfo["errorLog"] = errorCode;
+        TextDisplayUpdate();
     }
 
     public void SetScanProgression(int scanned)
@@ -96,8 +129,9 @@ public class ProgressionDisplayManager : MonoBehaviour
         return jobInfo["shouldStop"] != 0;
     }
 
-    public void StopJob()
+    public void StopJob(int errorCode)
     {
         jobInfo["shouldStop"] = 1;
+        jobInfo["errorLog"] = errorCode;
     }
 }

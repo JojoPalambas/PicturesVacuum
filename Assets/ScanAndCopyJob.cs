@@ -116,6 +116,7 @@ public struct ScanAndCopyJob : IJob
         if (neededSpace > availableDstSpace)
         {
             Debug.Log("Copy impossible ; not enough space: need " + neededSpace.ToString() + ", have " + availableDstSpace);
+            ProgressionDisplayManager.instance.SetErrorCode(4);
             return;
         }
 

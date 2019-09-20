@@ -21,6 +21,7 @@ public class ProgramManager : MonoBehaviour
     public InputField dstInput;
     public InputField extensionsInput;
     public Button scanButton;
+    public Button defaultButton;
     public Button stopButton;
 
     // Job management
@@ -44,12 +45,14 @@ public class ProgramManager : MonoBehaviour
                 Application.Quit();
 
             scanButton.interactable = true;
+            defaultButton.interactable = true;
             stopButton.interactable = false;
             EndJob();
         }
         else
         {
             scanButton.interactable = false;
+            defaultButton.interactable = false;
             stopButton.interactable = true;
         }
     }
@@ -71,23 +74,22 @@ public class ProgramManager : MonoBehaviour
         // Checks that the source path is empty or leads to an actual directory
         if (srcInput.text != "" && !Directory.Exists(srcInput.text))
         {
-            Debug.Log("Source does not exist!");
+            ProgressionDisplayManager.instance.SetErrorCode(1);
             return;
         }
         // Checks that the destination is an existing directory
         if (dstInput.text == "" || !Directory.Exists(dstInput.text))
         {
-            Debug.Log("Destination is invalid!");
+            ProgressionDisplayManager.instance.SetErrorCode(2);
             return;
         }
         // Checks that the extensions list is not empty
         if (extensionsInput.text.Length == 0)
         {
-            Debug.Log("Extensions is empty!");
+            ProgressionDisplayManager.instance.SetErrorCode(3);
             return;
         }
-
-        // Creating the communication array
+        ProgressionDisplayManager.instance.SetErrorCode(0);
 
         // Creating the attributes arrays
         jobSrcPathAttribute = new NativeArray<char>(srcInput.text.Length, Allocator.Persistent);
@@ -127,5 +129,9 @@ public class ProgramManager : MonoBehaviour
     public void OnDestroy()
     {
         EndJob();
+    }
+    public void LoadDefault()
+    {
+        extensionsInput.text = "jpeg JPG png PNG gif mp4 mov avi";
     }
 }
