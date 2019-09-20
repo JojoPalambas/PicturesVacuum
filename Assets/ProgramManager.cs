@@ -40,6 +40,9 @@ public class ProgramManager : MonoBehaviour
     {
         if (jobHandle.IsCompleted)
         {
+            if (Input.GetKeyDown(KeyCode.Escape))
+                Application.Quit();
+
             scanButton.interactable = true;
             stopButton.interactable = false;
             EndJob();

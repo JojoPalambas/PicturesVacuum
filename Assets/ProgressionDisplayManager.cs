@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 using UnityEngine;
+using TMPro;
 
 public class ProgressionDisplayManager : MonoBehaviour
 {
@@ -11,6 +12,11 @@ public class ProgressionDisplayManager : MonoBehaviour
 
     public static ProgressionDisplayManager instance;
 
+    public TextMeshProUGUI scannedDisplayer;
+    public TextMeshProUGUI measuredDisplayer;
+    public TextMeshProUGUI copiedDisplayer;
+    public TextMeshProUGUI failedDiplayer;
+
     private float nextShaderUpdate;
 
     // Start is called before the first frame update
@@ -18,6 +24,12 @@ public class ProgressionDisplayManager : MonoBehaviour
     {
         instance = this;
         renderer = GetComponent<Renderer>();
+
+        renderer.material.SetFloat("_FilesToCopy", 0);
+        renderer.material.SetFloat("_MeasuredFiles", 0);
+        renderer.material.SetFloat("_CopiedFiles", 0);
+        renderer.material.SetFloat("_FailedFiles", 0);
+
         Init();
     }
 
@@ -28,6 +40,7 @@ public class ProgressionDisplayManager : MonoBehaviour
         if (nextShaderUpdate < 0)
         {
             ShaderUpdate();
+            TextDisplayUpdate();
             nextShaderUpdate = 1;
         }
     }
@@ -50,6 +63,14 @@ public class ProgressionDisplayManager : MonoBehaviour
         renderer.material.SetFloat("_MeasuredFiles", jobInfo["measuredFiles"]);
         renderer.material.SetFloat("_CopiedFiles", jobInfo["copiedFiles"]);
         renderer.material.SetFloat("_FailedFiles", jobInfo["failedFiles"]);
+    }
+
+    public void TextDisplayUpdate()
+    {
+        scannedDisplayer.text = "Scanned files: " + jobInfo["scannedFiles"].ToString();
+        measuredDisplayer.text = "Measured files: " + jobInfo["measuredFiles"].ToString();
+        copiedDisplayer.text = "Copied files: " + jobInfo["copiedFiles"].ToString();
+        failedDiplayer.text = "Failed files: " + jobInfo["failedFiles"].ToString();
     }
 
     public void SetScanProgression(int scanned)

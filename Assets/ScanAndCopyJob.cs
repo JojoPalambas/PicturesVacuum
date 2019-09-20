@@ -154,6 +154,8 @@ public struct ScanAndCopyJob : IJob
                 Debug.Log("Could not copy " + fileNames[i]);
             }
         }
+
+        ScanAndCopyProgressionManager.PublishCopyProgression(fileNames.Count - failed, failed);
     }
 
     private List<string> GetAllFiles(string[] srcs, string[] extensions)
