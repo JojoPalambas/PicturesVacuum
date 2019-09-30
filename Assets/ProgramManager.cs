@@ -132,6 +132,6 @@ public class ProgramManager : MonoBehaviour
     }
     public void LoadDefault()
     {
-        extensionsInput.text = "jpeg JPG png PNG gif mp4 mov avi";
+        extensionsInput.text = "jpeg jpg JPG png PNG gif mp4 mov avi";
     }
 }
